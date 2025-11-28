@@ -35,7 +35,7 @@ jobs:
         id: set_vars
         run: |
           DATE=$(date +%Y-%m-%d)
-          NEW_ZIP_NAME="${DATE}分享项目.zip"
+          NEW_ZIP_NAME="${DATE}分享节点.zip"
           
           echo "zip_name=$NEW_ZIP_NAME" >> $GITHUB_OUTPUT
           echo "date=$DATE" >> $GITHUB_OUTPUT
