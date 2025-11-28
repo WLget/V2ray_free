@@ -58,22 +58,46 @@ jobs:
           echo "文件已压缩为 ${{ steps.set_vars.outputs.zip_name }}"
           rm ${{ env.TARGET_FILE }}
 
-      # 5. 更新 README.md 文件中的下载链接 (替换模式)
+     # 5. 更新 README.md 文件中的下载链接 (替换模式)
       - name: 更新 README.md
         run: |
+          # 确保获取到正确的变量
           ZIP_NAME="${{ steps.set_vars.outputs.zip_name }}"
+          # 构建链接：文件名作为链接文本，相对路径作为链接目标
           MARKDOWN_LINK="[${ZIP_NAME}](./${ZIP_NAME})"
           
           START_MARKER="<!-- DOWNLOAD_LINK_START -->"
           END_MARKER="<!-- DOWNLOAD_LINK_END -->"
           
+          echo "--- 调试信息 ---"
+          echo "生成的 ZIP 文件名: ${ZIP_NAME}"
+          echo "生成的 Markdown 链接: ${MARKDOWN_LINK}"
+          echo "README.md 内容 (更新前):"
+          cat ${{ env.README_FILE }}
+          echo "----------------"
+          
+          # 使用 awk 替换 START 和 END 标记之间的所有内容
+          # 注意：这里使用双引号来确保 shell 变量正确传递给 awk
           awk -v start="$START_MARKER" -v end="$END_MARKER" -v content="$MARKDOWN_LINK" '
             $0 ~ start {print; print content; in_block=1; next}
             $0 ~ end {print; in_block=0; next}
             !in_block {print}
-          ' ${{ env.README_FILE }} > README.tmp && mv README.tmp ${{ env.README_FILE }}
+          ' ${{ env.README_FILE }} > README.tmp
+          
+          # 检查替换是否成功
+          if [ $? -eq 0 ]; then
+            mv README.tmp ${{ env.README_FILE }}
+            echo "README.md 更新成功。"
+          else
+            echo "错误：awk 脚本执行失败。"
+            exit 1
+          fi
+          
+          echo "README.md 内容 (更新后):"
+          cat ${{ env.README_FILE }}
+          echo "----------------"
 
-      # 6. 提交更改 (新的 ZIP 文件和更新后的 README.md)
+      # 6. 提交更改 (请确保这里的 branch 名称是正确的，例如 master 或 main)
       - name: 提交同步文件和更新后的 README
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
