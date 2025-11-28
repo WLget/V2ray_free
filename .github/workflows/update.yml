@@ -1,0 +1,92 @@
+name: 每日Gist同步与README更新
+
+# 触发器：
+on:
+  # 1. 每日定时触发 (例如：每天 UTC 时间 00:00 运行)
+  schedule:
+    - cron: '0 0 * * *'
+  # 2. 允许手动触发，方便测试
+  workflow_dispatch:
+
+# 环境变量配置 (请根据您的实际情况替换以下值)
+env:
+  GITHUB_USERNAME: "WLget" 
+  GIST_ID: "aeb222e378a8dcbd74e06413dbacf400" 
+  GIST_FILENAME: "base64.txt" 
+  TARGET_FILE: "temp_gist_content.txt" # 临时存储 Gist 内容的文件
+  README_FILE: "README.md"
+  
+jobs:
+  sync_and_update:
+    name: 同步、压缩并更新链接
+    runs-on: ubuntu-latest
+    
+    # 授予工作流写入权限，以便提交文件
+    permissions:
+      contents: write
+      
+    steps:
+      # 1. 检出仓库代码
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      # 2. 设置动态文件名和日期变量
+      - name: 设置动态文件名
+        id: set_vars
+        run: |
+          # 获取当前日期，格式 YYYY-MM-DD
+          DATE=$(date +%Y-%m-%d)
+          # 构建最终的 ZIP 文件名：日期 + 固定字段
+          NEW_ZIP_NAME="${DATE}分享项目.zip"
+          
+          # 将变量设置为步骤输出，供后续步骤使用
+          echo "zip_name=$NEW_ZIP_NAME" >> $GITHUB_OUTPUT
+          echo "date=$DATE" >> $GITHUB_OUTPUT
+
+      # 3. 获取 Gist 内容并写入本地文件
+      - name: 获取 Gist 内容
+        run: |
+          GIST_URL="https://gist.githubusercontent.com/${{ env.GITHUB_USERNAME }}/${{ env.GIST_ID }}/raw/${{ env.GIST_FILENAME }}"
+          curl -sL "$GIST_URL" > ${{ env.TARGET_FILE }}
+          
+          if [ ! -s ${{ env.TARGET_FILE }} ]; then
+            echo "错误：未能获取Gist内容或文件为空。"
+            exit 1
+          fi
+
+      # 4. 压缩文件为 ZIP 格式 (使用动态文件名)
+      - name: 压缩文件
+        run: |
+          # 确保临时文件存在后再压缩
+          zip -r ${{ steps.set_vars.outputs.zip_name }} ${{ env.TARGET_FILE }}
+          echo "文件已压缩为 ${{ steps.set_vars.outputs.zip_name }}"
+          # 清理临时文件
+          rm ${{ env.TARGET_FILE }}
+
+      # 5. 更新 README.md 文件中的下载链接 (替换模式)
+      - name: 更新 README.md
+        run: |
+          ZIP_NAME="${{ steps.set_vars.outputs.zip_name }}"
+          # 构建链接：文件名作为链接文本，相对路径作为链接目标
+          MARKDOWN_LINK="[${ZIP_NAME}](./${ZIP_NAME})"
+          
+          START_MARKER="<!-- DOWNLOAD_LINK_START -->"
+          END_MARKER="<!-- DOWNLOAD_LINK_END -->"
+          
+          echo "正在更新 README.md，插入链接: ${MARKDOWN_LINK}"
+          
+          # 使用 awk 替换 START 和 END 标记之间的所有内容
+          awk -v start="$START_MARKER" -v end="$END_MARKER" -v content="$MARKDOWN_LINK" '
+            $0 ~ start {print; print content; in_block=1; next}
+            $0 ~ end {print; in_block=0; next}
+            !in_block {print}
+          ' ${{ env.README_FILE }} > README.tmp && mv README.tmp ${{ env.README_FILE }}
+
+      # 6. 提交更改 (新的 ZIP 文件和更新后的 README.md)
+      - name: 提交同步文件和更新后的 README
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "自动同步：Gist文件更新，日期：${{ steps.set_vars.outputs.date }}"
+          # 提交 ZIP 文件和 README 文件
+          file_pattern: "${{ steps.set_vars.outputs.zip_name }} ${{ env.README_FILE }}"
+          branch: main # 确保分支名称正确 (如果您的主分支是 master，请更改此处)
