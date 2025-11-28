@@ -1,13 +1,9 @@
 # v2ray节点订阅 每日更新分享，可自行下载
 
 ## 客户端下载
-|  客户端  | Android  | Windows  | iOS  |
-|  ----  | ----   | ----  |----  |
-| v2ray  | [v2rayNG](https://github.com/v2fly/v2ray-core/releases/download/v5.32.0/v2ray-android-arm64-v8a.zip) | [v2rayN](https://github.com/2dust/v2rayN/releases/download/7.12.3/v2rayN-windows-64-desktop.zip) | [OneClick]() |
-
-|  客户端  | Clash for Windows  | Clash Verge rev  | NekoBox for Android  |
-|  ----  | ----   | ----  |----  |
-| more  | [Clash](https://github.com/Z-Siqi/Clash-for-Windows_Chinese/releases/tag/0.20.39.3) |[Verge](https://github.com/clash-verge-rev/clash-verge-rev/releases/tag/v2.4.2) | [NekoBox](https://github.com/MatsuriDayo/NekoBoxForAndroid/releases/tag/1.4.0) |
+|  客户端  | Android  | Windows  | iOS  | Clash for Windows  | Clash Verge rev  | NekoBox for Android  |
+|  ----  | ----   | ----  |----  | ----   | ----  |----  |
+| v2ray  | [v2rayNG](https://github.com/v2fly/v2ray-core/releases/download/v5.32.0/v2ray-android-arm64-v8a.zip) | [v2rayN](https://github.com/2dust/v2rayN/releases/download/7.12.3/v2rayN-windows-64-desktop.zip) | [OneClick]() | [Clash](https://github.com/Z-Siqi/Clash-for-Windows_Chinese/releases/tag/0.20.39.3) |[Verge](https://github.com/clash-verge-rev/clash-verge-rev/releases/tag/v2.4.2) | [NekoBox](https://github.com/MatsuriDayo/NekoBoxForAndroid/releases/tag/1.4.0) |
 
 ### 节点下载链接
 <!-- DOWNLOAD_LINK_START -->
