@@ -4,7 +4,7 @@ name: 每日Gist同步与README更新
 on:
   # 1. 每日定时触发 (例如：每天 UTC 时间 00:00 运行)
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '30 0 * * *'
   # 2. 允许手动触发，方便测试
   workflow_dispatch:
 
@@ -101,7 +101,7 @@ jobs:
       - name: 提交同步文件和更新后的 README
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "自动同步：Gist文件更新，日期：${{ steps.set_vars.outputs.date }}"
+          commit_message: "每天自动更新节点，日期：${{ steps.set_vars.outputs.date }}"
           file_pattern: "${{ steps.set_vars.outputs.zip_name }} ${{ env.README_FILE }}"
           # ************* 重点修改 *************
           branch: master # <-- 请根据您的实际主分支名称修改此处：master 或 main
