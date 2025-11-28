@@ -34,12 +34,9 @@ jobs:
       - name: 设置动态文件名
         id: set_vars
         run: |
-          # 获取当前日期，格式 YYYY-MM-DD
           DATE=$(date +%Y-%m-%d)
-          # 构建最终的 ZIP 文件名：日期 + 固定字段
           NEW_ZIP_NAME="${DATE}分享项目.zip"
           
-          # 将变量设置为步骤输出，供后续步骤使用
           echo "zip_name=$NEW_ZIP_NAME" >> $GITHUB_OUTPUT
           echo "date=$DATE" >> $GITHUB_OUTPUT
 
@@ -57,25 +54,19 @@ jobs:
       # 4. 压缩文件为 ZIP 格式 (使用动态文件名)
       - name: 压缩文件
         run: |
-          # 确保临时文件存在后再压缩
           zip -r ${{ steps.set_vars.outputs.zip_name }} ${{ env.TARGET_FILE }}
           echo "文件已压缩为 ${{ steps.set_vars.outputs.zip_name }}"
-          # 清理临时文件
           rm ${{ env.TARGET_FILE }}
 
       # 5. 更新 README.md 文件中的下载链接 (替换模式)
       - name: 更新 README.md
         run: |
           ZIP_NAME="${{ steps.set_vars.outputs.zip_name }}"
-          # 构建链接：文件名作为链接文本，相对路径作为链接目标
           MARKDOWN_LINK="[${ZIP_NAME}](./${ZIP_NAME})"
           
           START_MARKER="<!-- DOWNLOAD_LINK_START -->"
           END_MARKER="<!-- DOWNLOAD_LINK_END -->"
           
-          echo "正在更新 README.md，插入链接: ${MARKDOWN_LINK}"
-          
-          # 使用 awk 替换 START 和 END 标记之间的所有内容
           awk -v start="$START_MARKER" -v end="$END_MARKER" -v content="$MARKDOWN_LINK" '
             $0 ~ start {print; print content; in_block=1; next}
             $0 ~ end {print; in_block=0; next}
@@ -87,6 +78,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "自动同步：Gist文件更新，日期：${{ steps.set_vars.outputs.date }}"
-          # 提交 ZIP 文件和 README 文件
           file_pattern: "${{ steps.set_vars.outputs.zip_name }} ${{ env.README_FILE }}"
-          branch: main # 确保分支名称正确 (如果您的主分支是 master，请更改此处)
+          # ************* 重点修改 *************
+          branch: master # <-- 请根据您的实际主分支名称修改此处：master 或 main
+          # ***********************************
