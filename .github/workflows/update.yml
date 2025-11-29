@@ -2,9 +2,10 @@ name: 每日Gist同步与README更新
 
 # 触发器：
 on:
-  # 1. 每日定时触发 (例如：每天 UTC 时间 00:00 运行)
+  # 每日定时触发 (UTC 时间 02:30，即北京时间 10:30 AM)
   schedule:
-    - cron: '30 0 * * *'
+    # cron 格式: 分 时 日 月 周
+    - cron: '30 2 * * *'
   # 2. 允许手动触发，方便测试
   workflow_dispatch:
 
