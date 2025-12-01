@@ -7,14 +7,15 @@ on:
 
 # 修正: 工作 -> jobs
 jobs:
-  # 修正: 同步内容 -> sync_content (Job ID 必须是英文或下划线)
+  # Job ID 必须是英文或下划线
   sync_content:
     # 修正: 运行于 -> runs-on
     runs-on: ubuntu-latest
     # 修正: 权限 -> permissions
     permissions:
       # 修正: 内容 -> contents
-      contents: write # 必须有写入权限才能修改 README.md 并提交
+      contents: write 
+    
     # 修正: 步骤 -> steps
     steps:
       - name: 检出代码
@@ -25,7 +26,7 @@ jobs:
         # 修正: 环境 -> env
         env:
           # 修正: 密钥 -> secrets
-          GIST_RAW_URL: ${{ secrets.GIST_RAW_URL }} # 替换为您的 Gist 原始 URL
+          GIST_RAW_URL: ${{ secrets.GIST_RAW_URL }} 
         run: |
           # --------------------------------------------------
           # 1. 设置变量
@@ -40,7 +41,7 @@ jobs:
           fi
 
           # --------------------------------------------------
-          # 2. 获取 Gist 内容
+          # 2. 获取 Gist 内容并判断状态
           # --------------------------------------------------
           echo "正在从 Gist 获取内容..."
           GIST_CONTENT=$(curl -sL "$GIST_RAW_URL")
@@ -68,7 +69,7 @@ jobs:
           # 格式化要追加的内容 (添加 Markdown 引用块以区分)
           if [ ! -z "$GIST_CONTENT" ]; then
             FORMATTED_CONTENT="\n> ## 最新同步内容 ($SYNC_TIME)\n\n\`\`\`\n$GIST_CONTENT\n\`\`\`\n"
-            # 将新内容追加到结束标记之前
+            # 将新内容追加到文件末尾
             echo -e "$FORMATTED_CONTENT" >> "$README_FILE"
           fi
 
@@ -89,7 +90,6 @@ jobs:
             echo "已创建新的同步日志表格。"
           else
             # 如果存在，则在分隔符和第一行之间插入新的日志条目 (最新的在最上面)
-            # 使用 awk 找到分隔行并插入新行
             awk -v entry="$LOG_ENTRY" '/| :--- | :--- |/ {print; print entry; next} 1' "$README_FILE" > temp && mv temp "$README_FILE"
             echo "已追加新的日志条目。"
           fi
@@ -106,7 +106,7 @@ jobs:
           else
             git add "$README_FILE"
             git commit -m "自动同步 Gist 内容和更新日志：$SYNC_TIME"
-            # 使用我们设置的 GH_TOKEN 进行推送
+            # 使用我们设置的 GH_TOKEN 密钥进行推送
             git push https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
             echo "成功提交并推送更改。"
           fi
