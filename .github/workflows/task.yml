@@ -18,7 +18,8 @@ jobs:
       contents: write 
     steps:
       - name: 检出代码
-        uses: actions:checkout@v4
+        # *** 修正：将 actions:checkout@v4 改为 actions/checkout@v4 ***
+        uses: actions/checkout@v4
 
       - name: 执行同步脚本
         env:
@@ -59,7 +60,7 @@ jobs:
           END_MARKER="<!-- GIST_SYNC_END -->"
           
           # 构造 HTML/Markdown 块 (使用单行定义，避免 YAML 冲突)
-          # max-height: 200px 大约是 10 行的高度
+          # max-height: 200px (约 10 行)
           HTML_START='<details><summary>点击展开最新同步内容 ('
           HTML_END=")</summary><div style=\"max-height: 200px; overflow: auto; border: 1px solid #ccc; padding: 10px;\">\n\n\`\`\`\n"
           HTML_CODE_END="\n\`\`\`\n\n</div></details>"
