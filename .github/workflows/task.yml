@@ -45,37 +45,52 @@ jobs:
           if [ -z "$GIST_CONTENT" ]; then
             echo "警告：Gist 内容为空或获取失败。"
             SYNC_STATUS="节点分享失败（内容为空）"
-            NEW_CONTENT="\n> ## 最新同步内容 ($SYNC_TIME)\n\n获取内容失败或内容为空。\n"
+            GIST_CONTENT_BLOCK="获取内容失败或内容为空。"
           else
             SYNC_STATUS="节点分享成功"
-            NEW_CONTENT="\n> ## 最新同步内容 ($SYNC_TIME)\n\n\`\`\`\n$GIST_CONTENT\n\`\`\`\n"
+            GIST_CONTENT_BLOCK="$GIST_CONTENT"
           fi
 
           # --------------------------------------------------
-          # 3. 更新 README.md 内容部分 (修正：使用删除+插入)
+          # 3. 更新 README.md 内容部分 (内容替换和格式化)
           # --------------------------------------------------
           
           START_MARKER="<!-- GIST_SYNC_START -->"
           END_MARKER="<!-- GIST_SYNC_END -->"
           
-          # 步骤 3.1: 检查标记是否存在，如果不存在则添加
-          if ! grep -q "$START_MARKER" "$README_FILE"; then
-            echo -e "\n\n$START_MARKER\n\n$END_MARKER" >> "$README_FILE"
-            echo "已添加 Gist 内容标记。"
-          fi
+          # 构造包含 HTML 滚动框和 Markdown 代码块的新内容
+          # max-height: 200px 大约是 10 行的高度
+          NEW_CONTENT=$(cat <<EOF
+$START_MARKER
+<details>
+<summary>点击展开最新同步内容 ($SYNC_TIME)</summary>
+<div style="max-height: 200px; overflow: auto; border: 1px solid #ccc; padding: 10px;">
 
-          # 步骤 3.2: 准备要插入的内容 (转义换行符，以便 sed 'a' 命令使用)
+\`\`\`
+$GIST_CONTENT_BLOCK
+\`\`\`
+
+</div>
+</details>
+$END_MARKER
+EOF
+)
+          
+          # 准备要插入的内容 (转义换行符，以便 sed 'a' 命令使用)
           # 注意：这里我们使用 printf 而不是 echo -e 来更可靠地处理转义
-          NEW_CONTENT_ESCAPED=$(printf "%s" "$NEW_CONTENT" | sed -e 's/\\/\\\\/g' -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g')
+          # 移除 START_MARKER 和 END_MARKER 标记本身，只保留中间内容
+          INSERT_CONTENT=$(echo "$NEW_CONTENT" | sed '1d;$d')
+          INSERT_CONTENT_ESCAPED=$(printf "%s" "$INSERT_CONTENT" | sed -e 's/\\/\\\\/g' -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g')
 
-          # 步骤 3.3: 删除 START_MARKER 和 END_MARKER 之间的所有内容 (不包括标记本身)
+          # 步骤 3.1: 删除 START_MARKER 和 END_MARKER 之间的所有内容 (不包括标记本身)
+          # /START_MARKER/,/END_MARKER/ 定位区块，然后用 d 删除中间行
           sed -i "/$START_MARKER/,/$END_MARKER/{ /$START_MARKER/! { /$END_MARKER/! d } }" "$README_FILE"
           
-          # 步骤 3.4: 在 START_MARKER 后面插入新的内容
+          # 步骤 3.2: 在 START_MARKER 后面插入新的内容
           # 使用 sed 'a\' (append) 命令
-          sed -i "/$START_MARKER/a\\$NEW_CONTENT_ESCAPED" "$README_FILE"
+          sed -i "/$START_MARKER/a\\$INSERT_CONTENT_ESCAPED" "$README_FILE"
           
-          echo "Gist 内容已成功替换到标记区域。"
+          echo "Gist 内容已成功替换到标记区域并应用滚动样式。"
 
 
           # --------------------------------------------------
@@ -88,17 +103,17 @@ jobs:
           LOG_MARKER="<!-- SYNC_LOG_TABLE -->"
           
           # 检查 README.md 中是否已存在今天的日志记录
-          # 注意：我们只检查日志区域是否存在今天的日期，避免误判
-          if awk '/<!-- SYNC_LOG_TABLE -->/,/| :--- | :--- |/ { if ($0 ~ /'$SYNC_DATE'/) exit 1 }' "$README_FILE"; then
+          # 查找 LOG_SEPARATOR 行，并在其后的内容中查找今天的日期
+          if awk '/| :--- | :--- |/ { p=1 } p && $0 ~ /'$SYNC_DATE'/ { exit 1 }' "$README_FILE"; then
             echo "今天 ($SYNC_DATE) 的日志已存在，跳过记录。"
           else
             echo "今天 ($SYNC_DATE) 没有日志记录，正在写入新条目。"
             
+            # 检查日志标记是否存在 (理论上 Step 1 已经确保了存在)
             if ! grep -q "$LOG_MARKER" "$README_FILE"; then
-              # 如果不存在，则创建表格和标记
-              echo -e "\n\n## 同步日志\n$LOG_MARKER\n$LOG_HEADER\n$LOG_SEPARATOR\n$LOG_ENTRY\n" >> "$README_FILE"
+              echo "警告：未找到日志标记，跳过日志写入。"
             else
-              # 如果存在，则在分隔符后插入新的日志条目
+              # 在分隔符后插入新的日志条目 (最新的在最上面)
               awk -v entry="$LOG_ENTRY" '/| :--- | :--- |/ {print; print entry; next} 1' "$README_FILE" > temp && mv temp "$README_FILE"
             fi
           fi
