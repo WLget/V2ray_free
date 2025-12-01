@@ -1,0 +1,92 @@
+name: Gist 内容同步与日志
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'
+
+jobs:
+  sync_content:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write 
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 执行同步脚本
+        env:
+          GIST_RAW_URL: ${{ secrets.GIST_RAW_URL }} 
+        run: |
+          # --------------------------------------------------
+          # 1. 设置变量
+          # --------------------------------------------------
+          README_FILE="README.md"
+          SYNC_TIME=$(date "+%Y-%m-%d %H:%M:%S")
+          
+          if [ -z "$GIST_RAW_URL" ]; then
+            echo "错误：GIST_RAW_URL 未设置。"
+            exit 1
+          fi
+
+          # --------------------------------------------------
+          # 2. 获取 Gist 内容并判断状态
+          # --------------------------------------------------
+          echo "正在从 Gist 获取内容..."
+          GIST_CONTENT=$(curl -sL "$GIST_RAW_URL")
+
+          if [ -z "$GIST_CONTENT" ]; then
+            echo "警告：Gist 内容为空或获取失败。"
+            SYNC_STATUS="节点分享失败（内容为空）"
+          else
+            SYNC_STATUS="节点分享成功"
+          fi
+
+          # --------------------------------------------------
+          # 3. 更新 README.md 内容部分
+          # --------------------------------------------------
+          
+          START_MARKER="<!-- GIST_SYNC_START -->"
+          END_MARKER="<!-- GIST_SYNC_END -->"
+
+          if ! grep -q "$START_MARKER" "$README_FILE"; then
+            echo -e "\n\n$START_MARKER\n\n$END_MARKER" >> "$README_FILE"
+            echo "已添加 Gist 内容标记。"
+          fi
+
+          if [ ! -z "$GIST_CONTENT" ]; then
+            FORMATTED_CONTENT="\n> ## 最新同步内容 ($SYNC_TIME)\n\n\`\`\`\n$GIST_CONTENT\n\`\`\`\n"
+            echo -e "$FORMATTED_CONTENT" >> "$README_FILE"
+          fi
+
+
+          # --------------------------------------------------
+          # 4. 更新同步日志表格
+          # --------------------------------------------------
+          
+          LOG_HEADER="| 同步时间 | 同步状态 |"
+          LOG_SEPARATOR="| :--- | :--- |"
+          LOG_ENTRY="| $SYNC_TIME | $SYNC_STATUS |"
+          LOG_MARKER="<!-- SYNC_LOG_TABLE -->"
+          
+          if ! grep -q "$LOG_MARKER" "$README_FILE"; then
+            echo -e "\n\n## 同步日志\n$LOG_MARKER\n$LOG_HEADER\n$LOG_SEPARATOR\n$LOG_ENTRY\n" >> "$README_FILE"
+          else
+            awk -v entry="$LOG_ENTRY" '/| :--- | :--- |/ {print; print entry; next} 1' "$README_FILE" > temp && mv temp "$README_FILE"
+          fi
+
+          # --------------------------------------------------
+          # 5. 提交更改
+          # --------------------------------------------------
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if git diff --exit-code "$README_FILE"; then
+            echo "README.md 没有变化，无需提交。"
+          else
+            git add "$README_FILE"
+            git commit -m "自动同步 Gist 内容和更新日志：$SYNC_TIME"
+            # 推送到 master 分支
+            git push https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git HEAD:master
+            echo "成功提交并推送更改。"
+          fi
