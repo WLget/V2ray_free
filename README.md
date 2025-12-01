@@ -19,3 +19,27 @@
 - 下面是套餐截图
   
 <img width="1576" height="576" alt="image" src="https://github.com/user-attachments/assets/3a5aa761-571a-4225-9c93-090d6f6a67ec" /><img width="1578" height="522" alt="image" src="https://github.com/user-attachments/assets/c7e6a68d-ff9a-432d-9edd-dd5047f798dc" /><img width="410" height="413" alt="image" src="https://github.com/user-attachments/assets/24273dea-0254-49dd-9a4f-d9e8591c18e3" />
+
+
+
+## 1. 最新同步内容区域
+
+此区域用于展示从 Gist URL (`https://raw.githubusercontent.com/WLget/V2Ray_configs_64/refs/heads/master/ConfigSub_list.txt`) 获取到的内容。
+
+**注意：** 每次同步都会将新的内容追加到此区域的末尾。
+
+<!-- GIST_SYNC_START -->
+
+<!-- GIST_SYNC_END -->
+
+---
+
+## 2. 同步任务日志
+
+此表格记录了每次 GitHub Actions 同步任务的执行情况。最新的日志条目将自动插入在表格顶部。
+
+<!-- SYNC_LOG_TABLE -->
+| 同步时间 | 同步状态 |
+| :--- | :--- |
+| 2025-01-01 00:00:00 | 节点分享成功 (示例) |
+| 2025-01-01 04:00:00 | 节点分享失败（内容为空） (示例) |
