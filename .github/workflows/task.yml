@@ -29,6 +29,8 @@ jobs:
           # --------------------------------------------------
           README_FILE="README.md"
           SYNC_TIME=$(date "+%Y-%m-%d %H:%M:%S")
+          # 仅用于日志查重和显示
+          SYNC_DATE=$(date "+%Y-%m-%d")
           
           if [ -z "$GIST_RAW_URL" ]; then
             echo "错误：GIST_RAW_URL 未设置。"
@@ -39,7 +41,6 @@ jobs:
           # 2. 获取 Gist 内容并判断状态
           # --------------------------------------------------
           echo "正在从 Gist 获取内容..."
-          # 使用 curl 获取内容，-s静默模式，-L跟随重定向
           GIST_CONTENT=$(curl -sL "$GIST_RAW_URL")
 
           if [ -z "$GIST_CONTENT" ]; then
@@ -50,7 +51,7 @@ jobs:
           fi
 
           # --------------------------------------------------
-          # 3. 更新 README.md 内容部分 (核心修正)
+          # 3. 更新 README.md 内容部分
           # --------------------------------------------------
           
           START_MARKER="<!-- GIST_SYNC_START -->"
@@ -58,24 +59,19 @@ jobs:
           
           # 格式化要插入的内容 (使用 Markdown 代码块包裹)
           if [ ! -z "$GIST_CONTENT" ]; then
-            # 使用 base64 编码来安全地传递多行内容给 sed
+            # 仅在内容不为空时，才更新内容区域
             FORMATTED_CONTENT_B64=$(echo -e "\n> ## 最新同步内容 ($SYNC_TIME)\n\n\`\`\`\n$GIST_CONTENT\n\`\`\`\n" | base64 -w 0)
           else
             FORMATTED_CONTENT_B64=$(echo -e "\n> ## 最新同步内容 ($SYNC_TIME)\n\n获取内容失败或内容为空。\n" | base64 -w 0)
           fi
 
           # 使用 sed 进行区块替换
-          # /START_MARKER/,/END_MARKER/ 定位到两个标记之间的区域
-          # c\ 替换命令，替换为 START_MARKER + (base64解码后的内容) + END_MARKER
-          # 注意：需要使用 GNU sed，GitHub Actions 默认使用
-          # 需要先将 base64 内容解码，并替换换行符
-          sed -i "/$START_MARKER/,/$END_MARKER/{
-            /$START_MARKER/!{/$END_MARKER/!d}
-            /$START_MARKER/a $(echo $FORMATTED_CONTENT_B64 | base64 -d | sed ':a;N;s/\n/\\n/g;ta')
-            /$START_MARKER/!d
-          }" "$README_FILE"
-          
-          # 检查替换是否成功 (如果 START/END 标记不存在，sed会失败，但我们假设它们存在)
+          # 注意：这里我们使用更简单的 sed 替换方式，确保只保留 START/END 标记
+          sed -i "/$START_MARKER/,/$END_MARKER/c\\
+$START_MARKER\\
+$(echo $FORMATTED_CONTENT_B64 | base64 -d | sed 's/\\/\\\\/g' | sed ':a;N;s/\n/\\n/g;ta')\\
+$END_MARKER" "$README_FILE"
+
           if grep -q "$START_MARKER" "$README_FILE"; then
               echo "Gist 内容已成功替换到标记区域。"
           else
@@ -83,22 +79,28 @@ jobs:
           fi
 
           # --------------------------------------------------
-          # 4. 更新同步日志表格
+          # 4. 更新同步日志表格 (核心修正：每日只记录一次)
           # --------------------------------------------------
           
           LOG_HEADER="| 同步时间 | 同步状态 |"
           LOG_SEPARATOR="| :--- | :--- |"
+          # 日志条目使用精确到小时的时间，但查重使用日期
           LOG_ENTRY="| $SYNC_TIME | $SYNC_STATUS |"
           LOG_MARKER="<!-- SYNC_LOG_TABLE -->"
           
-          if ! grep -q "$LOG_MARKER" "$README_FILE"; then
-            # 如果不存在，则创建表格和标记
-            echo -e "\n\n## 同步日志\n$LOG_MARKER\n$LOG_HEADER\n$LOG_SEPARATOR\n$LOG_ENTRY\n" >> "$README_FILE"
+          # 检查 README.md 中是否已存在今天的日志记录
+          if grep -q "$SYNC_DATE" "$README_FILE"; then
+            echo "今天 ($SYNC_DATE) 的日志已存在，跳过记录。"
           else
-            # 修正：使用 awk 找到分隔行并插入新行，确保新日志在顶部
-            # 查找 LOG_SEPARATOR 行，在其后插入 LOG_ENTRY
-            awk -v entry="$LOG_ENTRY" '/| :--- | :--- |/ {print; print entry; next} 1' "$README_FILE" > temp && mv temp "$README_FILE"
-            echo "已追加新的日志条目到表格顶部。"
+            echo "今天 ($SYNC_DATE) 没有日志记录，正在写入新条目。"
+            # 检查日志标记是否存在
+            if ! grep -q "$LOG_MARKER" "$README_FILE"; then
+              # 如果不存在，则创建表格和标记
+              echo -e "\n\n## 同步日志\n$LOG_MARKER\n$LOG_HEADER\n$LOG_SEPARATOR\n$LOG_ENTRY\n" >> "$README_FILE"
+            else
+              # 如果存在，则在分隔符后插入新的日志条目 (最新的在最上面)
+              awk -v entry="$LOG_ENTRY" '/| :--- | :--- |/ {print; print entry; next} 1' "$README_FILE" > temp && mv temp "$README_FILE"
+            fi
           fi
 
           # --------------------------------------------------
