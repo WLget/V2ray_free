@@ -1,31 +1,20 @@
 name: Gist 内容同步与日志
 
-# 修正: 论排程 -> on: schedule
 on:
   schedule:
     - cron: '0 */4 * * *'
 
-# 修正: 工作 -> jobs
 jobs:
-  # Job ID 必须是英文或下划线
   sync_content:
-    # 修正: 运行于 -> runs-on
     runs-on: ubuntu-latest
-    # 修正: 权限 -> permissions
     permissions:
-      # 修正: 内容 -> contents
       contents: write 
-    
-    # 修正: 步骤 -> steps
     steps:
       - name: 检出代码
-        # 修正: 使用 -> uses
         uses: actions/checkout@v4
 
       - name: 执行同步脚本
-        # 修正: 环境 -> env
         env:
-          # 修正: 密钥 -> secrets
           GIST_RAW_URL: ${{ secrets.GIST_RAW_URL }} 
         run: |
           # --------------------------------------------------
@@ -34,9 +23,8 @@ jobs:
           README_FILE="README.md"
           SYNC_TIME=$(date "+%Y-%m-%d %H:%M:%S")
           
-          # 检查 GIST_RAW_URL 是否已设置
           if [ -z "$GIST_RAW_URL" ]; then
-            echo "错误：GIST_RAW_URL 未设置。请在 Secrets 中配置。"
+            echo "错误：GIST_RAW_URL 未设置。"
             exit 1
           fi
 
@@ -60,16 +48,13 @@ jobs:
           START_MARKER="<!-- GIST_SYNC_START -->"
           END_MARKER="<!-- GIST_SYNC_END -->"
 
-          # 检查分隔符是否存在，如果不存在则在文件末尾添加
           if ! grep -q "$START_MARKER" "$README_FILE"; then
             echo -e "\n\n$START_MARKER\n\n$END_MARKER" >> "$README_FILE"
             echo "已添加 Gist 内容标记。"
           fi
 
-          # 格式化要追加的内容 (添加 Markdown 引用块以区分)
           if [ ! -z "$GIST_CONTENT" ]; then
             FORMATTED_CONTENT="\n> ## 最新同步内容 ($SYNC_TIME)\n\n\`\`\`\n$GIST_CONTENT\n\`\`\`\n"
-            # 将新内容追加到文件末尾
             echo -e "$FORMATTED_CONTENT" >> "$README_FILE"
           fi
 
@@ -83,15 +68,10 @@ jobs:
           LOG_ENTRY="| $SYNC_TIME | $SYNC_STATUS |"
           LOG_MARKER="<!-- SYNC_LOG_TABLE -->"
           
-          # 检查日志标记是否存在
           if ! grep -q "$LOG_MARKER" "$README_FILE"; then
-            # 如果不存在，则创建表格和标记
             echo -e "\n\n## 同步日志\n$LOG_MARKER\n$LOG_HEADER\n$LOG_SEPARATOR\n$LOG_ENTRY\n" >> "$README_FILE"
-            echo "已创建新的同步日志表格。"
           else
-            # 如果存在，则在分隔符和第一行之间插入新的日志条目 (最新的在最上面)
             awk -v entry="$LOG_ENTRY" '/| :--- | :--- |/ {print; print entry; next} 1' "$README_FILE" > temp && mv temp "$README_FILE"
-            echo "已追加新的日志条目。"
           fi
 
           # --------------------------------------------------
@@ -106,7 +86,7 @@ jobs:
           else
             git add "$README_FILE"
             git commit -m "自动同步 Gist 内容和更新日志：$SYNC_TIME"
-            # 使用我们设置的 GH_TOKEN 密钥进行推送
-            git push https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+            # 推送到 master 分支
+            git push https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git HEAD:master
             echo "成功提交并推送更改。"
           fi
