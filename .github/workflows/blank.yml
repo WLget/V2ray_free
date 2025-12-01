@@ -1,0 +1,109 @@
+名称: Gist 内容同步与日志
+
+# 每 4 小时执行一次
+论排程:
+  - cron: '0 */4 * * *'
+
+工作:
+  同步内容:
+    运行于: ubuntu-latest
+    权限:
+      内容: 写 # 必须有写入权限才能修改 README.md 并提交
+    步骤:
+      - 名称: 检出代码
+        使用: actions/checkout@v4
+
+      - 名称: 执行同步脚本
+        环境:
+          # 从仓库密钥中获取 Gist URL
+          GIST_RAW_URL: ${{ 密钥.GIST_RAW_URL }} 
+        运行: |
+          # --------------------------------------------------
+          # 1. 设置变量
+          # --------------------------------------------------
+          README_FILE="README.md"
+          SYNC_TIME=$(date "+%Y-%m-%d %H:%M:%S")
+          
+          # 检查 GIST_RAW_URL 是否已设置
+          if [ -z "$GIST_RAW_URL" ]; then
+            echo "错误：GIST_RAW_URL 未设置。请在 Secrets 中配置。"
+            exit 1
+          fi
+
+          # --------------------------------------------------
+          # 2. 获取 Gist 内容并判断状态
+          # --------------------------------------------------
+          echo "正在从 Gist 获取内容..."
+          # 使用 curl 获取内容，-s静默模式，-L跟随重定向
+          GIST_CONTENT=$(curl -sL "$GIST_RAW_URL")
+
+          if [ -z "$GIST_CONTENT" ]; then
+            echo "警告：Gist 内容为空或获取失败。"
+            SYNC_STATUS="节点分享失败（内容为空）"
+          else
+            SYNC_STATUS="节点分享成功"
+          fi
+
+          # --------------------------------------------------
+          # 3. 更新 README.md 内容部分
+          # --------------------------------------------------
+          
+          # 定义内容分隔符，确保每次同步时旧内容被追加
+          START_MARKER="<!-- GIST_SYNC_START -->"
+          END_MARKER="<!-- GIST_SYNC_END -->"
+
+          # 检查分隔符是否存在，如果不存在则在文件末尾添加
+          if ! grep -q "$START_MARKER" "$README_FILE"; then
+            echo -e "\n\n$START_MARKER\n\n$END_MARKER" >> "$README_FILE"
+            echo "已添加 Gist 内容标记。"
+          fi
+
+          # 仅在内容不为空时，才将内容追加到 README.md
+          if [ ! -z "$GIST_CONTENT" ]; then
+            # 格式化要追加的内容 (添加 Markdown 引用块以区分)
+            FORMATTED_CONTENT="\n> ## 最新同步内容 ($SYNC_TIME)\n\n\`\`\`\n$GIST_CONTENT\n\`\`\`\n"
+            
+            # 将新内容追加到结束标记之后（保持追加逻辑）
+            echo -e "$FORMATTED_CONTENT" >> "$README_FILE"
+            echo "Gist 内容已追加到 README.md。"
+          fi
+
+
+          # --------------------------------------------------
+          # 4. 更新同步日志表格
+          # --------------------------------------------------
+          
+          LOG_HEADER="| 同步时间 | 同步状态 |"
+          LOG_SEPARATOR="| :--- | :--- |"
+          # 使用我们在步骤 2 中确定的 SYNC_STATUS 变量
+          LOG_ENTRY="| $SYNC_TIME | $SYNC_STATUS |"
+          LOG_MARKER="<!-- SYNC_LOG_TABLE -->"
+          
+          # 检查日志标记是否存在
+          if ! grep -q "$LOG_MARKER" "$README_FILE"; then
+            # 如果不存在，则创建表格和标记
+            echo -e "\n\n## 同步日志\n$LOG_MARKER\n$LOG_HEADER\n$LOG_SEPARATOR\n$LOG_ENTRY\n" >> "$README_FILE"
+            echo "已创建新的同步日志表格。"
+          else
+            # 如果存在，则在分隔符和第一行之间插入新的日志条目 (最新的在最上面)
+            # 使用 awk 找到分隔行并插入新行
+            awk -v entry="$LOG_ENTRY" '/| :--- | :--- |/ {print; print entry; next} 1' "$README_FILE" > temp && mv temp "$README_FILE"
+            echo "已追加新的日志条目。"
+          fi
+
+          # --------------------------------------------------
+          # 5. 提交更改
+          # --------------------------------------------------
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if git diff --exit-code "$README_FILE"; then
+            echo "README.md 没有变化，无需提交。"
+          else
+            git add "$README_FILE"
+            git commit -m "自动同步 Gist 内容和更新日志：$SYNC_TIME"
+            # 使用我们设置的 GH_TOKEN 密钥进行推送
+            git push https://${{ 密钥.GH_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+            echo "成功提交并推送更改。"
+          fi
