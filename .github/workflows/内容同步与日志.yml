@@ -3,6 +3,8 @@ name: Gist 内容同步与日志
 on:
   schedule:
     - cron: '0 */4 * * *'
+    
+ workflow_dispatch:
 
 jobs:
   sync_content:
