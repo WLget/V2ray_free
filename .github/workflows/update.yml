@@ -31,15 +31,27 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      # 2. 设置动态文件名和日期变量
-      - name: 设置动态文件名
+      # 2. 设置动态文件名、日期和随机密码
+      - name: 设置动态文件名和密码
         id: set_vars
         run: |
+          # 确保安装 openssl 用于生成随机密码
+          sudo apt-get install -y openssl
+          
           DATE=$(date +%Y-%m-%d)
           NEW_ZIP_NAME="${DATE}分享节点.zip"
           
+          # 生成一个 12 位的随机 Base64 密码
+          RANDOM_PASSWORD=$(openssl rand -base64 12)
+          PASSWORD_FILE="${DATE}密码.txt"
+          
           echo "zip_name=$NEW_ZIP_NAME" >> $GITHUB_OUTPUT
           echo "date=$DATE" >> $GITHUB_OUTPUT
+          # 导出随机密码和密码文件名，供后续步骤使用
+          echo "zip_password=$RANDOM_PASSWORD" >> $GITHUB_OUTPUT
+          echo "password_file=$PASSWORD_FILE" >> $GITHUB_OUTPUT
+          
+          echo "生成的随机密码: $RANDOM_PASSWORD"
 
       # 3. 获取 Gist 内容并写入本地文件
       - name: 获取 Gist 内容
@@ -52,14 +64,25 @@ jobs:
             exit 1
           fi
 
-      # 4. 压缩文件为 ZIP 格式 (使用动态文件名)
-      - name: 压缩文件
+      # 4. 生成包含 ZIP 密码的 TXT 文件
+      - name: 生成密码文件
         run: |
-          zip -r ${{ steps.set_vars.outputs.zip_name }} ${{ env.TARGET_FILE }}
-          echo "文件已压缩为 ${{ steps.set_vars.outputs.zip_name }}"
+          PASSWORD="${{ steps.set_vars.outputs.zip_password }}"
+          PASSWORD_FILE="${{ steps.set_vars.outputs.password_file }}"
+          
+          echo "ZIP 文件解压密码：" > $PASSWORD_FILE
+          echo "$PASSWORD" >> $PASSWORD_FILE
+          echo "密码文件已生成：$PASSWORD_FILE"
+
+      # 5. 压缩文件为 ZIP 格式 (使用动态文件名和密码)
+      - name: 压缩文件 (带密码)
+        run: |
+          # 使用 -P 选项设置密码
+          zip -r -P "${{ steps.set_vars.outputs.zip_password }}" ${{ steps.set_vars.outputs.zip_name }} ${{ env.TARGET_FILE }}
+          echo "文件已压缩为 ${{ steps.set_vars.outputs.zip_name }} (已加密)"
           rm ${{ env.TARGET_FILE }}
 
-     # 5. 更新 README.md 文件中的下载链接 (替换模式)
+     # 6. 更新 README.md 文件中的下载链接 (替换模式)
       - name: 更新 README.md
         run: |
           # 确保获取到正确的变量
@@ -70,22 +93,13 @@ jobs:
           START_MARKER="<!-- DOWNLOAD_LINK_START -->"
           END_MARKER="<!-- DOWNLOAD_LINK_END -->"
           
-          echo "--- 调试信息 ---"
-          echo "生成的 ZIP 文件名: ${ZIP_NAME}"
-          echo "生成的 Markdown 链接: ${MARKDOWN_LINK}"
-          echo "README.md 内容 (更新前):"
-          cat ${{ env.README_FILE }}
-          echo "----------------"
-          
           # 使用 awk 替换 START 和 END 标记之间的所有内容
-          # 注意：这里使用双引号来确保 shell 变量正确传递给 awk
           awk -v start="$START_MARKER" -v end="$END_MARKER" -v content="$MARKDOWN_LINK" '
             $0 ~ start {print; print content; in_block=1; next}
             $0 ~ end {print; in_block=0; next}
             !in_block {print}
           ' ${{ env.README_FILE }} > README.tmp
           
-          # 检查替换是否成功
           if [ $? -eq 0 ]; then
             mv README.tmp ${{ env.README_FILE }}
             echo "README.md 更新成功。"
@@ -93,17 +107,12 @@ jobs:
             echo "错误：awk 脚本执行失败。"
             exit 1
           fi
-          
-          echo "README.md 内容 (更新后):"
-          cat ${{ env.README_FILE }}
-          echo "----------------"
 
-      # 6. 提交更改 (请确保这里的 branch 名称是正确的，例如 master 或 main)
+      # 7. 提交更改 (请确保这里的 branch 名称是正确的，例如 master 或 main)
       - name: 提交同步文件和更新后的 README
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "每天自动更新节点，日期：${{ steps.set_vars.outputs.date }}"
-          file_pattern: "${{ steps.set_vars.outputs.zip_name }} ${{ env.README_FILE }}"
-          # ************* 重点修改 *************
-          branch: master # <-- 请根据您的实际主分支名称修改此处：master 或 main
-          # ***********************************
+          # 重点：同时提交 ZIP 文件、密码 TXT 文件和 README
+          file_pattern: "${{ steps.set_vars.outputs.zip_name }} ${{ steps.set_vars.outputs.password_file }} ${{ env.README_FILE }}"
+          branch: master # <-- 请根据您的实际主分支名称修改此处
