@@ -31,18 +31,16 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      # 2. 设置动态文件名、日期和随机密码
+      # 2. 设置动态文件名、日期和随机密码 (修改此处)
       - name: 设置动态文件名和密码
         id: set_vars
         run: |
-          # 确保安装 openssl 用于生成随机密码
-          sudo apt-get install -y openssl
-          
           DATE=$(date +%Y-%m-%d)
           NEW_ZIP_NAME="${DATE}分享节点.zip"
           
-          # 生成一个 12 位的随机 Base64 密码
-          RANDOM_PASSWORD=$(openssl rand -base64 12)
+          # ****** 关键修改：生成一个 4 位的随机数字密码 ******
+          # 使用 /dev/urandom 结合 tr 过滤出 0-9 的数字，并截取前 4 位
+          RANDOM_PASSWORD=$(head /dev/urandom | tr -dc 0-9 | head -c 4)
           PASSWORD_FILE="${DATE}密码.txt"
           
           echo "zip_name=$NEW_ZIP_NAME" >> $GITHUB_OUTPUT
@@ -108,11 +106,11 @@ jobs:
             exit 1
           fi
 
-      # 7. 提交更改 (请确保这里的 branch 名称是正确的，例如 master 或 main)
+      # 7. 提交更改
       - name: 提交同步文件和更新后的 README
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "每天自动更新节点，日期：${{ steps.set_vars.outputs.date }}"
-          # 重点：同时提交 ZIP 文件、密码 TXT 文件和 README
+          # 同时提交 ZIP 文件、密码 TXT 文件和 README
           file_pattern: "${{ steps.set_vars.outputs.zip_name }} ${{ steps.set_vars.outputs.password_file }} ${{ env.README_FILE }}"
           branch: master # <-- 请根据您的实际主分支名称修改此处
