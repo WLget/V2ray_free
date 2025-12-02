@@ -31,21 +31,19 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      # 2. 设置动态文件名、日期和随机密码 (修改此处)
+      # 2. 设置动态文件名、日期和随机密码
       - name: 设置动态文件名和密码
         id: set_vars
         run: |
           DATE=$(date +%Y-%m-%d)
           NEW_ZIP_NAME="${DATE}分享节点.zip"
           
-          # ****** 关键修改：生成一个 4 位的随机数字密码 ******
-          # 使用 /dev/urandom 结合 tr 过滤出 0-9 的数字，并截取前 4 位
+          # 生成一个 4 位的随机数字密码
           RANDOM_PASSWORD=$(head /dev/urandom | tr -dc 0-9 | head -c 4)
           PASSWORD_FILE="${DATE}密码.txt"
           
           echo "zip_name=$NEW_ZIP_NAME" >> $GITHUB_OUTPUT
           echo "date=$DATE" >> $GITHUB_OUTPUT
-          # 导出随机密码和密码文件名，供后续步骤使用
           echo "zip_password=$RANDOM_PASSWORD" >> $GITHUB_OUTPUT
           echo "password_file=$PASSWORD_FILE" >> $GITHUB_OUTPUT
           
@@ -72,26 +70,30 @@ jobs:
           echo "$PASSWORD" >> $PASSWORD_FILE
           echo "密码文件已生成：$PASSWORD_FILE"
 
-      # 5. 压缩文件为 ZIP 格式 (使用动态文件名和密码)
-      - name: 压缩文件 (带密码)
+      # 5. 压缩文件为 ZIP 格式 (使用 7z 进行 AES 加密，确保兼容性)
+      - name: 压缩文件 (带密码，使用 7z)
         run: |
-          # 使用 -P 选项设置密码
-          zip -r -P "${{ steps.set_vars.outputs.zip_password }}" ${{ steps.set_vars.outputs.zip_name }} ${{ env.TARGET_FILE }}
-          echo "文件已压缩为 ${{ steps.set_vars.outputs.zip_name }} (已加密)"
+          # 确保安装 7z 工具，它提供更好的 ZIP 加密兼容性
+          sudo apt-get update
+          sudo apt-get install -y p7zip-full
+          
+          # 使用 7z 命令创建 ZIP 压缩包
+          # -tzip 指定格式为 ZIP
+          # -p 指定密码，7z 默认使用 AES-256 加密，兼容 WinRAR
+          7z a -tzip -p"${{ steps.set_vars.outputs.zip_password }}" ${{ steps.set_vars.outputs.zip_name }} ${{ env.TARGET_FILE }}
+          
+          echo "文件已压缩为 ${{ steps.set_vars.outputs.zip_name }} (已使用 7z AES 加密)"
           rm ${{ env.TARGET_FILE }}
 
      # 6. 更新 README.md 文件中的下载链接 (替换模式)
       - name: 更新 README.md
         run: |
-          # 确保获取到正确的变量
           ZIP_NAME="${{ steps.set_vars.outputs.zip_name }}"
-          # 构建链接：文件名作为链接文本，相对路径作为链接目标
           MARKDOWN_LINK="[${ZIP_NAME}](./${ZIP_NAME})"
           
           START_MARKER="<!-- DOWNLOAD_LINK_START -->"
           END_MARKER="<!-- DOWNLOAD_LINK_END -->"
           
-          # 使用 awk 替换 START 和 END 标记之间的所有内容
           awk -v start="$START_MARKER" -v end="$END_MARKER" -v content="$MARKDOWN_LINK" '
             $0 ~ start {print; print content; in_block=1; next}
             $0 ~ end {print; in_block=0; next}
@@ -111,6 +113,5 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "每天自动更新节点，日期：${{ steps.set_vars.outputs.date }}"
-          # 同时提交 ZIP 文件、密码 TXT 文件和 README
           file_pattern: "${{ steps.set_vars.outputs.zip_name }} ${{ steps.set_vars.outputs.password_file }} ${{ env.README_FILE }}"
           branch: master # <-- 请根据您的实际主分支名称修改此处
