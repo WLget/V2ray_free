@@ -17,7 +17,7 @@ aHlzdGVyaWEyOi8vNjFjNGJlOTAtNjIzNS0xMWVjLWE4YmYtZjIzYzkxY2ZiYmM5QDljMDMwY2Q4LXQ3
 `http://59.33.33.157:18080/v2ray.txt`
 
 # Clash免费节点订阅
-### [订阅地址：]() 下列订阅地址已测试Clash/Clash Verge/NekoBox软件均可使用，复制到软件下载，其他暂未测试！
+### [订阅地址：]() 
 - `http://103.143.238.196:20211/`
 - `http://59.33.33.157:18080/clash.yaml`
 - `http://132.226.169.119/clash.yaml`
