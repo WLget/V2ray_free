@@ -14,6 +14,8 @@ dmxlc3M6Ly81M2YwYmNhOC1mMTcwLTRlZjctODAzMS1jN2Q0NDExODlkYmZAbm9ybWFuLm5zLmNsb3Vk
 ### [订阅地址：]()
 `https://raw.githubusercontent.com/WLget/V2Ray_configs_64/refs/heads/master/ConfigSub_list.txt`
 
+`https://bpbg.anguswen.top/sub/normal/7422b5db-34c3-4ac6-a7ed-9c3127c7c5d9#%F0%9F%92%A6%20BPB%20Normal`
+
 `http://59.33.33.157:18080/v2ray.txt`
 
 # Clash免费节点订阅
