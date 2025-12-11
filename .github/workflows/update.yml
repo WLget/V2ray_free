@@ -2,11 +2,12 @@ name: 每日Gist同步与README更新
 
 # 触发器：
 on:
-    # 1. 每 4 小时定时触发 (UTC 时间 00:00, 04:00, 08:00, 12:00, 16:00, 20:00)
+  push:
+    branches:
+      - main
   schedule:
-    cron: '0 0,4,8,12,16,20 * * *'
-  # 2. 允许手动触发，方便测试
-  workflow_dispatch:
+    - cron: '0 */4 * * *'   # 每 4 小时运行（UTC 时间）
+  workflow_dispatch:        # 可选：支持手动触发[1,7](@ref)
 
 # 环境变量配置
 env:
