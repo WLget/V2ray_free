@@ -10,6 +10,19 @@ aHlzdGVyaWEyOi8vNjFjNGJlOTAtNjIzNS0xMWVjLWE4YmYtZjIzYzkxY2ZiYmM5QDljMDMwY2Q4LXQ3
 ```
 <!-- GIST_CONTENT_END -->
 
+# v2ray免费节点订阅
+### [订阅地址：]()
+`https://raw.githubusercontent.com/WLget/V2Ray_configs_64/refs/heads/master/ConfigSub_list.txt`
+
+`http://59.33.33.157:18080/v2ray.txt`
+
+# Clash免费节点订阅
+### [订阅地址：]() 下列订阅地址已测试Clash/Clash Verge/NekoBox软件均可使用，复制到软件下载，其他暂未测试！
+- `http://103.143.238.196:20211/`
+- `http://59.33.33.157:18080/clash.yaml`
+- `http://132.226.169.119/clash.yaml`
+
+
 ## 如果大家觉得这个节点不太稳定，下面有稳定的机场
 - 已经测试都是比较稳定，播放4K视频都是没有问题；
 - 价格优惠便宜；
