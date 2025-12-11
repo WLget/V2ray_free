@@ -49,23 +49,25 @@ jobs:
             exit 1
           fi
 
-      # 4. 更新 README.md 文件，将 Gist 内容插入到指定标记之间，并用代码块包裹
-      - name: 插入内容到 README.md (使用代码块)
+      # 4. 更新 README.md 文件，将 Gist 内容插入到指定标记之间，并用带高度限制的 HTML 代码块包裹
+      # 使用 <pre> 标签和内联样式实现固定高度 (10em 约等于 10 行) 和滚动条
+      - name: 插入内容到 README.md (带高度限制的代码块)
         run: |
           # 定义标记
           START_MARKER="<!-- GIST_CONTENT_START -->"
           END_MARKER="<!-- GIST_CONTENT_END -->"
           
-          # 使用 AWK 脚本替换标记之间的内容，并添加代码块标记 (```)
+          # 使用 AWK 脚本替换标记之间的内容
           awk -v start="$START_MARKER" -v end="$END_MARKER" -v content_file="${{ env.TARGET_FILE }}" '
             $0 ~ start {
               print; 
-              print "```"; # 添加起始代码块标记
+              # 使用 <pre> 标签模拟代码块，并设置最大高度为 10em (约10行) 和滚动条
+              print "<pre style=\"max-height: 10em; overflow: auto; padding: 10px; background-color: #f6f8fa; border-radius: 6px;\">"; 
               # 插入 Gist 内容
               while ((getline content < content_file) > 0) {
                 print content
               }
-              print "```"; # 添加结束代码块标记
+              print "</pre>"; # 添加结束代码块标记
               in_block=1; 
               next
             }
