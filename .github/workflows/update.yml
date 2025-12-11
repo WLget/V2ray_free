@@ -9,7 +9,7 @@ on:
   # 2. 允许手动触发，方便测试
   workflow_dispatch:
 
-# 环境变量配置 (请根据您的实际情况替换以下值)
+# 环境变量配置
 env:
   GITHUB_USERNAME: "WLget" 
   GIST_ID: "aeb222e378a8dcbd74e06413dbacf400" 
@@ -19,7 +19,7 @@ env:
   
 jobs:
   sync_and_update:
-    name: 同步、压缩并更新链接
+    name: 同步 Gist 内容并更新 README
     runs-on: ubuntu-latest
     
     # 授予工作流写入权限，以便提交文件
@@ -31,24 +31,14 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      # 2. 设置动态文件名、日期和随机密码
-      - name: 设置动态文件名和密码
+      # 2. 设置动态日期
+      - name: 设置动态日期
         id: set_vars
         run: |
           DATE=$(date +%Y-%m-%d)
-          NEW_ZIP_NAME="${DATE}分享节点.zip"
-          
-          # 生成一个 4 位的随机数字密码
-          RANDOM_PASSWORD=$(head /dev/urandom | tr -dc 0-9 | head -c 4)
-          
-          echo "zip_name=$NEW_ZIP_NAME" >> $GITHUB_OUTPUT
           echo "date=$DATE" >> $GITHUB_OUTPUT
-          # 导出随机密码，供压缩和邮件步骤使用
-          echo "zip_password=$RANDOM_PASSWORD" >> $GITHUB_OUTPUT
-          
-          echo "生成的随机密码: $RANDOM_PASSWORD"
 
-      # 3. 获取 Gist 内容并写入本地文件
+      # 3. 获取 Gist 内容并写入本地临时文件
       - name: 获取 Gist 内容
         run: |
           GIST_URL="https://gist.githubusercontent.com/${{ env.GITHUB_USERNAME }}/${{ env.GIST_ID }}/raw/${{ env.GIST_FILENAME }}"
@@ -59,56 +49,34 @@ jobs:
             exit 1
           fi
 
-      # 4. 压缩文件为 ZIP 格式 (使用 7z 进行 AES 加密，确保兼容性)
-      - name: 压缩文件 (带密码，使用 7z)
+      # 4. 更新 README.md 文件，将 Gist 内容插入到指定标记之间
+      - name: 插入内容到 README.md
         run: |
-          # 确保安装 7z 工具
-          sudo apt-get update
-          sudo apt-get install -y p7zip-full
+          # 定义标记
+          START_MARKER="<!-- GIST_CONTENT_START -->"
+          END_MARKER="<!-- GIST_CONTENT_END -->"
           
-          # 使用 7z 命令创建 ZIP 压缩包
-          7z a -tzip -p"${{ steps.set_vars.outputs.zip_password }}" ${{ steps.set_vars.outputs.zip_name }} ${{ env.TARGET_FILE }}
+          # 使用 AWK 脚本替换标记之间的内容
+          # 注意：您需要在 README.md 中手动添加这两个标记，例如：
+          # <!-- GIST_CONTENT_START -->
+          # 这里是旧内容或空行
+          # <!-- GIST_CONTENT_END -->
           
-          echo "文件已压缩为 ${{ steps.set_vars.outputs.zip_name }} (已使用 7z AES 加密)"
-          rm ${{ env.TARGET_FILE }}
-
-      # 5. 发送邮件通知密码 (新增步骤)
-      - name: 发送 ZIP 解压密码到邮箱
-        uses: dawidd6/action-send-mail@v3
-        with:
-          # 邮件服务器配置 (使用 Secrets)
-          server_address: ${{ secrets.MAIL_SERVER }}
-          server_port: ${{ secrets.MAIL_PORT }}
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
-          # 邮件内容配置
-          subject: "【GitHub Actions】节点文件密码更新 - ${{ steps.set_vars.outputs.date }}"
-          # 发送方和接收方
-          from: ${{ secrets.MAIL_USERNAME }}
-          to: 631581425@qq.com
-          body: |
-            您好，
-            
-            本次生成的节点文件已更新并上传至仓库。
-            
-            文件名: ${{ steps.set_vars.outputs.zip_name }}
-            
-            **解压密码 (4位数字): ${{ steps.set_vars.outputs.zip_password }}**
-            
-            请注意查收。
-
-     # 6. 更新 README.md 文件中的下载链接 (替换模式)
-      - name: 更新 README.md
-        run: |
-          ZIP_NAME="${{ steps.set_vars.outputs.zip_name }}"
-          MARKDOWN_LINK="[${ZIP_NAME}](./${ZIP_NAME})"
-          
-          START_MARKER="<!-- DOWNLOAD_LINK_START -->"
-          END_MARKER="<!-- DOWNLOAD_LINK_END -->"
-          
-          awk -v start="$START_MARKER" -v end="$END_MARKER" -v content="$MARKDOWN_LINK" '
-            $0 ~ start {print; print content; in_block=1; next}
-            $0 ~ end {print; in_block=0; next}
+          awk -v start="$START_MARKER" -v end="$END_MARKER" -v content_file="${{ env.TARGET_FILE }}" '
+            $0 ~ start {
+              print; 
+              # 插入 Gist 内容
+              while ((getline content < content_file) > 0) {
+                print content
+              }
+              in_block=1; 
+              next
+            }
+            $0 ~ end {
+              print; 
+              in_block=0; 
+              next
+            }
             !in_block {print}
           ' ${{ env.README_FILE }} > README.tmp
           
@@ -119,12 +87,14 @@ jobs:
             echo "错误：awk 脚本执行失败。"
             exit 1
           fi
+          
+          # 清理临时文件
+          rm ${{ env.TARGET_FILE }}
 
-      # 7. 提交更改
-      - name: 提交同步文件和更新后的 README
+      # 5. 提交更改
+      - name: 提交更新后的 README
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "每天自动更新节点，日期：${{ steps.set_vars.outputs.date }}"
-          # 注意：这里不再提交密码 TXT 文件
-          file_pattern: "${{ steps.set_vars.outputs.zip_name }} ${{ env.README_FILE }}"
+          commit_message: "每天自动同步Gist内容并更新README，日期：${{ steps.set_vars.outputs.date }}"
+          file_pattern: "${{ env.README_FILE }}"
           branch: master # <-- 请根据您的实际主分支名称修改此处
