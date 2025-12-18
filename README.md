@@ -20,7 +20,6 @@ dHJvamFuOi8vZTI3MjJjMGZiNTAzZjhhNTkyNDM2YzEyYmNlMDUwOWFAMTEyLjExOC4xMTYuODo0NDM/
 
 # Clash免费节点订阅
 ### [订阅地址：]() 
- `http://103.143.238.196:20211/`
  
  `http://59.33.33.157:18080/clash.yaml`
  
