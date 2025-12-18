@@ -1,4 +1,4 @@
-name: 每日Gist同步与README更新
+name: 同步更新
 
 # 触发器：
 on:
@@ -19,7 +19,7 @@ env:
   
 jobs:
   sync_and_update:
-    name: 同步 Gist 内容并更新 README
+    name: 同步更新
     runs-on: ubuntu-latest
     
     # 授予工作流写入权限，以便提交文件
@@ -92,6 +92,6 @@ jobs:
       - name: 提交更新后的 README
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "每天自动同步Gist内容并更新README，日期：${{ steps.set_vars.outputs.date }}"
+          commit_message: "每天自动同步，日期：${{ steps.set_vars.outputs.date }}"
           file_pattern: "${{ env.README_FILE }}"
           branch: master # <-- 请根据您的实际主分支名称修改此处
