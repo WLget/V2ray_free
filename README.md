@@ -34,3 +34,17 @@ dmxlc3M6Ly9hNTcxMjQ0MC0zY2VjLTRhMWItODJlOC03NjdjNTRhY2Q4M2FAMTA0LjE4LjMyLjQ3Ojgw
 - 点击右边蓝色字体前往体验：[稳定机场体验](https://mojie.app/register?aff=XHFxrLoP)
 - 下面是套餐截图
 <img width="1576" height="576" alt="image" src="https://github.com/user-attachments/assets/3a5aa761-571a-4225-9c93-090d6f6a67ec" /><img width="1578" height="522" alt="image" src="https://github.com/user-attachments/assets/c7e6a68d-ff9a-432d-9edd-dd5047f798dc" /><img width="410" height="413" alt="image" src="https://github.com/user-attachments/assets/24273dea-0254-49dd-9a4f-d9e8591c18e3" />
+
+# 闲置电脑挖矿项目推荐：
+### 点击右边蓝色字体前往：[注册地址](https://www.kryptex.com/?ref=318a6e5c)
+
+### 项目截图
+<img width="1213" height="759" alt="image" src="https://github.com/user-attachments/assets/495ba53b-effd-4225-b536-1b5dcf186ea7" />
+<img width="1171" height="622" alt="image" src="https://github.com/user-attachments/assets/e14bc360-d7bf-4341-94ef-cba1c209e2f6" />
+<img width="1399" height="527" alt="image" src="https://github.com/user-attachments/assets/4dd8f45a-05d6-453b-b586-5f9275526ee0" />
+
+### 交易所收款截图
+<img width="1222" height="479" alt="image" src="https://github.com/user-attachments/assets/0badfe58-94ef-475b-8221-497b917746e5" />
+
+
+
