@@ -14,16 +14,18 @@ dHJvamFuOi8vTWlUaVZQTkAxMDQuMTguMzYuMTkyOjQ0Mz9zbmk9aGsxLU1pVGlWUE4tLU1pVGlWUE4t
 ### [订阅地址：]()
 `https://raw.githubusercontent.com/WLget/V2Ray_configs_64/refs/heads/master/ConfigSub_list.txt`
 
-`https://bpbg.anguswen.top/sub/normal/7422b5db-34c3-4ac6-a7ed-9c3127c7c5d9#%F0%9F%92%A6%20BPB%20Normal`
+`http://137.175.44.100:8080/sub64.txt`
 
-`http://59.33.33.157:18080/v2ray.txt`
+`http://107.172.199.58:8080/sub.txt`
+
+`http://192.220.56.72/sub.txt`
 
 # Clash免费节点订阅
 ### [订阅地址：]() 
  
- `http://59.33.33.157:18080/clash.yaml`
- 
- `http://132.226.169.119/clash.yaml`
+- `http://137.175.44.100:8080/cfws-clash.yaml`
+- `http://107.172.199.58:8080/clash.yaml`
+- `http://192.220.56.72/clash.yaml`
 
 
 ## 如果大家觉得这个节点不太稳定，下面有稳定的机场
